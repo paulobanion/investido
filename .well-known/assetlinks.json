@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.paulobanion.twa",
+        "sha256_cert_fingerprints": ["73:A4:CD:AB:E2:4D:92:86:B7:8F:6B:8F:37:9E:95:D8:4B:8E:78:DE:3B:C5:54:28:79:6C:7B:01:7F:8E:D2:AC"]
+      }
+    }]
