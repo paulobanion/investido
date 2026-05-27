@@ -595,6 +595,9 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
         </div>
       </div>
 
+      {/* Quick actions — igual à home, mas "Extrato" desabilitado pois já estamos nele */}
+      <QuickActions onAdd={openAdd} onExtrato={null} extratoAtivo={true}/>
+
       {/* Lista rendimentos */}
       <div style={{ ...cardStyle, marginTop: 12, marginBottom: 96 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -786,12 +789,12 @@ function EditableRow({ label, value, hasOverride, masked, onSave }) {
   );
 }
 
-function QuickActions({ onAdd, onExtrato }) {
+function QuickActions({ onAdd, onExtrato, extratoAtivo }) {
   const tiles = [
     { icon: <Icon.Chart c={SI.olive}/>, label: 'Home Broker' },
     { icon: <Icon.Doc c={SI.greenPrimary}/>, label: 'Guia do\nInvestidor' },
     { icon: <Icon.Calc c={SI.greenPrimary}/>, label: 'Simulador' },
-    { icon: <Icon.Wallet c={SI.olive}/>, label: 'Extrato', onClick: onExtrato },
+    { icon: <Icon.Wallet c={extratoAtivo ? SI.teal : SI.olive}/>, label: 'Extrato', onClick: onExtrato, active: extratoAtivo },
   ];
   return (
     <div style={{ marginTop: 14 }}>
@@ -799,14 +802,16 @@ function QuickActions({ onAdd, onExtrato }) {
         {tiles.map((t, i) => (
           <button key={i} type="button" onClick={t.onClick} style={{
             flex: '0 0 auto', width: 152, padding: '14px 14px',
-            background: '#fff', borderRadius: 12, border: `1px solid ${SI.border}`,
+            background: t.active ? `${SI.teal}12` : '#fff',
+            borderRadius: 12,
+            border: t.active ? `1.5px solid ${SI.teal}` : `1px solid ${SI.border}`,
             display: 'flex', alignItems: 'center', gap: 10,
             boxShadow: '0 2px 8px rgba(16, 40, 26, 0.04)',
             cursor: t.onClick ? 'pointer' : 'default',
             textAlign: 'left', fontFamily: 'inherit',
           }}>
             {t.icon}
-            <div style={{ fontSize: 13, color: SI.textDark, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2 }}>{t.label}</div>
+            <div style={{ fontSize: 13, color: t.active ? SI.teal : SI.textDark, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2 }}>{t.label}</div>
           </button>
         ))}
       </div>
