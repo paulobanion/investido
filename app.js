@@ -466,9 +466,10 @@ function App() {
       {/* ── EXTRATO (sobreposto, montado quando ativo) ── */}
       {view === 'extrato' && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 20,
-          background: SI.bg, overflowY: 'auto',
+          position: 'absolute', inset: 0, zIndex: 20,
+          background: SI.bg, overflowY: 'auto', overflowX: 'hidden',
           fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+          WebkitOverflowScrolling: 'touch',
         }}>
           <ExtratoScreen
             year={year} monthIdx={monthIdx}
@@ -610,45 +611,42 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
             Nenhum rendimento neste mês.<br/>Toque em <strong style={{ color: SI.greenDark }}>+</strong> para adicionar.
           </div>
         ) : (
-          groups.map(g => (
-            <div key={g.year} style={{ marginTop: 14 }}>
-              <div style={{ textAlign: 'center', paddingBottom: 6, borderBottom: `2px solid ${SI.border}` }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: SI.teal }}>{g.year}</span>
-              </div>
-              {g.list.map(r => (
-                <button key={r.id} onClick={() => openEdit(r.id)} style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '13px 4px', background: 'transparent', border: 'none',
-                  borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: SI.border,
-                  cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                }}>
-                  <span style={{ fontSize: 13.5, color: SI.textMid, fontVariantNumeric: 'tabular-nums', minWidth: 84 }}>
-                    {formatDateBR(r.date)}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 14, color: SI.textDark, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.label || 'Rendimento'}
-                  </span>
-                  <span style={{ fontSize: 14.5, fontWeight: 700, color: SI.greenDark, fontVariantNumeric: 'tabular-nums' }}>
-                    {visible ? `R$ ${formatBRL(r.amount)}` : '••••'}
-                  </span>
-                  <Icon.Pencil s={13} c={SI.teal}/>
-                </button>
-              ))}
-            </div>
-          ))
+          <div>
+            {rends.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(r => (
+              <button key={r.id} onClick={() => openEdit(r.id)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '13px 4px', background: 'transparent', border: 'none',
+                borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: SI.border,
+                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+              }}>
+                <span style={{ fontSize: 13.5, color: SI.textMid, fontVariantNumeric: 'tabular-nums', minWidth: 84 }}>
+                  {formatDateBR(r.date)}
+                </span>
+                <span style={{ flex: 1, fontSize: 14, color: SI.textDark, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.label || 'Rendimento'}
+                </span>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: SI.greenDark, fontVariantNumeric: 'tabular-nums' }}>
+                  {visible ? `R$ ${formatBRL(r.amount)}` : '••••'}
+                </span>
+                <Icon.Pencil s={13} c={SI.teal}/>
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      <button onClick={openAdd} aria-label="Adicionar rendimento" style={{
-        position: 'fixed', right: 20, bottom: 24,
-        width: 60, height: 60, borderRadius: '50%',
-        background: SI.greenPrimary, border: 'none',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 10px 24px rgba(122, 182, 72, 0.5)',
-        cursor: 'pointer', zIndex: 30,
-      }}>
-        <Icon.Plus s={28}/>
-      </button>
+      {/* FAB sticky no rodapé do scroll */}
+      <div style={{ position: 'sticky', bottom: 24, display: 'flex', justifyContent: 'flex-end', padding: '0 20px', marginTop: 12, pointerEvents: 'none' }}>
+        <button onClick={openAdd} aria-label="Adicionar rendimento" style={{
+          width: 60, height: 60, borderRadius: '50%',
+          background: SI.greenPrimary, border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 10px 24px rgba(122, 182, 72, 0.5)',
+          cursor: 'pointer', zIndex: 30, pointerEvents: 'auto',
+        }}>
+          <Icon.Plus s={28}/>
+        </button>
+      </div>
 
       <BottomSheet open={!!sheet} onClose={closeSheet}
         title={sheet?.mode === 'edit' ? 'Editar rendimento' : 'Novo rendimento'}>
@@ -725,7 +723,7 @@ function ResponsiveShell({ children }) {
   }, []);
 
   if (isMobile) return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: SI.bg }}>
+    <div style={{ width: '100vw', minHeight: '100vh', background: SI.bg, position: 'relative', overflowX: 'hidden' }}>
       {children}
     </div>
   );
