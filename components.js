@@ -101,6 +101,7 @@ const Icon = {
       <circle cx="6" cy="19" r="1.2" fill={c}/>
     </svg>
   ),
+  Chevron: ({ s = 16, c = SI.teal }) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
       <path d="M9 6l6 6-6 6" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
