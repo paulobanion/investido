@@ -276,6 +276,7 @@ function App() {
           visible={visible} onToggleVisible={() => setVisible(v => !v)}
           onBack={() => setView('home')}
           onGear={() => setShowBackup(true)}
+          prevMonth={prevMonth} nextMonth={nextMonth}
           monthHeader={monthHeader}
         />
         {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
@@ -286,10 +287,9 @@ function App() {
   return (
     <ResponsiveShell>
       <div style={{
-        position: 'relative', minHeight: '100vh',
         background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
         color: SI.textDark,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 80px)',
       }}>
         {/* Cabeçalho com setas */}
         {monthHeader}
@@ -453,7 +453,7 @@ function App() {
 
         {/* FAB */}
         <button onClick={openAdd} aria-label="Adicionar investimento" style={{
-          position: 'absolute', right: 20, bottom: 24,
+          position: 'fixed', right: 20, bottom: 24,
           width: 60, height: 60, borderRadius: '50%',
           background: SI.greenPrimary, color: '#fff', border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -483,7 +483,7 @@ function App() {
 }
 
 // ─── Tela de Extrato ───────────────────────────────────────────
-function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, setOverrides, visible, onToggleVisible, onBack, onGear, monthHeader }) {
+function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, setOverrides, visible, onToggleVisible, onBack, onGear, prevMonth, nextMonth }) {
   const [rends, setRends] = useState(() => loadRendimentos(year, monthIdx));
   const [sheet, setSheet] = useState(null);
 
@@ -523,11 +523,10 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
 
   return (
     <div style={{
-      position: 'relative', minHeight: '100vh',
       background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
-      color: SI.textDark, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      color: SI.textDark, paddingBottom: 'env(safe-area-inset-bottom, 24px)',
     }}>
-      {/* Cabeçalho com setas — mesmo do home */}
+      {/* Cabeçalho — seta voltar | logo+mês | seta avançar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '20px 16px 14px', minHeight: 84, gap: 8,
@@ -539,7 +538,12 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
             {MONTHS[monthIdx]} {year}
           </div>
         </div>
-        <button style={iconBtn} aria-label="Backup" onClick={onGear}><Icon.Gear/></button>
+        {/* Seta avançar mês (igual ao home) */}
+        <button style={iconBtn} aria-label="Próximo mês" onClick={nextMonth}>
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+            <path d="M9 6l6 6-6 6" stroke={SI.textDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       {/* Rótulo */}
@@ -629,7 +633,7 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
       </div>
 
       <button onClick={openAdd} aria-label="Adicionar rendimento" style={{
-        position: 'absolute', right: 20, bottom: 24,
+        position: 'fixed', right: 20, bottom: 24,
         width: 60, height: 60, borderRadius: '50%',
         background: SI.greenPrimary, border: 'none',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -714,7 +718,7 @@ function ResponsiveShell({ children }) {
   }, []);
 
   if (isMobile) return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: SI.bg, overflow: 'hidden' }}>
+    <div style={{ width: '100vw', minHeight: '100vh', background: SI.bg }}>
       {children}
     </div>
   );

@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#00615E"/>
+  <meta name="color-scheme" content="light"/>
   <meta name="description" content="Acompanhe seus investimentos mês a mês"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -13,33 +14,41 @@
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.png"/>
   <style>
+    /* Força tema claro independente do sistema */
+    :root { color-scheme: light only; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; width: 100%; overflow: hidden; background: #F5F8F6; }
+    html, body {
+      height: 100%; width: 100%;
+      background: #F5F8F6;
+      overscroll-behavior: none;
+    }
     #app-shell {
       width: 100%;
       max-width: 430px;
-      height: 100dvh;
+      min-height: 100dvh;
       margin: 0 auto;
       background: #F5F8F6;
       position: relative;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
     #root {
       flex: 1;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
       position: relative;
     }
     @media (min-width: 480px) {
-      body { background: #E8EDEA; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      body { background: #E8EDEA; display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 20px 0; }
       #app-shell {
+        min-height: unset;
         height: min(900px, 96dvh);
         border-radius: 28px;
         box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06);
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: sticky;
+        top: 20px;
       }
     }
     input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; }
