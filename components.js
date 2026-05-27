@@ -1,22 +1,22 @@
-// components.jsx — shared UI primitives
+// components.jsx — shared UI primitives for the Sicredi-style investment app
 
 const SI = {
-  greenPrimary: '#7AB648',
-  greenDark:    '#5F8F35',
-  greenSoft:    '#A6CB7F',
-  teal:         '#007E7A',
-  tealDark:     '#00615E',
-  olive:        '#B5A03B',
-  textDark:     '#1F2A24',
-  textMid:      '#5B6B62',
-  textMute:     '#8E9C95',
-  border:       '#E6ECE8',
-  bg:           '#FFFFFF',
-  bgSoft:       '#F5F8F6',
-  danger:       '#C0392B',
+  greenPrimary: '#7AB648',      // big values, donut
+  greenDark: '#5F8F35',         // text accents
+  greenSoft: '#A6CB7F',
+  teal: '#007E7A',              // section labels, "Investimentos" header
+  tealDark: '#00615E',
+  olive: '#B5A03B',             // Home Broker chart icon
+  textDark: '#1F2A24',
+  textMid: '#5B6B62',
+  textMute: '#8E9C95',
+  border: '#E6ECE8',
+  bg: '#FFFFFF',
+  bgSoft: '#F5F8F6',
+  danger: '#C0392B',
 };
 
-// ─── Icons ────────────────────────────────────────────────────
+// ─── Icons (stroke icons matching the print) ───────────────────────────────
 const Icon = {
   Back: ({ s = 24, c = SI.textDark }) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
@@ -99,49 +99,25 @@ const Icon = {
       <path d="M9 6l6 6-6 6" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  ChevronLeft: ({ s = 16, c = SI.teal }) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-      <path d="M15 6l-6 6 6 6" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  ),
   Close: ({ s = 24, c = SI.textDark }) => (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
       <path d="M6 6l12 12M18 6L6 18" stroke={c} strokeWidth="2" strokeLinecap="round"/>
     </svg>
   ),
-  Download: ({ s = 20, c = SI.teal }) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-      <path d="M12 3v12M8 11l4 4 4-4" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke={c} strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  ),
-  Upload: ({ s = 20, c = SI.greenDark }) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-      <path d="M12 15V3M8 7l4-4 4 4" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke={c} strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  ),
-  Calendar: ({ s = 20, c = SI.teal }) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="18" height="18" rx="2" stroke={c} strokeWidth="1.8"/>
-      <path d="M3 9h18M8 2v4M16 2v4" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
-    </svg>
-  ),
 };
 
-// ─── Format helpers ────────────────────────────────────────────
-function formatBRL(value) {
+// ─── Format helpers ────────────────────────────────────────────────────────
+function formatBRL(value, { showSymbol = false } = {}) {
   const n = Number(value) || 0;
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const s = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return showSymbol ? `R$ ${s}` : s;
 }
 
-function formatDateBR(iso) {
-  if (!iso || typeof iso !== 'string' || iso.indexOf('-') === -1) return iso || '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+function maskValue(visible, text) {
+  return visible ? text : '••••••';
 }
 
-// ─── Donut chart ───────────────────────────────────────────────
+// ─── Donut chart with category segments ────────────────────────────────────
 function DonutChart({ data, size = 220, thickness = 38, visible = true }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const cx = size / 2, cy = size / 2;
@@ -158,7 +134,7 @@ function DonutChart({ data, size = 220, thickness = 38, visible = true }) {
         fill="none" stroke={d.color} strokeWidth={thickness}
         strokeDasharray={`${len} ${C - len}`}
         strokeDashoffset={-offset}
-        style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        style={{ transition: 'stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease' }}
       />
     );
     offset += len;
@@ -187,64 +163,4 @@ function DonutChart({ data, size = 220, thickness = 38, visible = true }) {
   );
 }
 
-// ─── EditableRow ───────────────────────────────────────────────
-function EditableRow({ label, value, hasOverride, masked, onSave }) {
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState(value);
-  const inputRef = React.useRef(null);
-
-  function start() {
-    setDraft(value);
-    setEditing(true);
-    setTimeout(() => inputRef.current && inputRef.current.select(), 0);
-  }
-  function commit() { onSave(draft.trim()); setEditing(false); }
-  function cancel() { setEditing(false); }
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-      <span style={{ fontSize: 14, color: SI.teal }}>{label}</span>
-      {editing ? (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
-            onBlur={commit}
-            style={{
-              fontSize: 14, fontWeight: 700, color: SI.greenDark,
-              textAlign: 'right', width: 130,
-              padding: '4px 8px', borderRadius: 6,
-              border: `1.5px solid ${SI.greenPrimary}`,
-              background: '#fff', outline: 'none',
-              fontFamily: 'inherit',
-            }}
-          />
-          {hasOverride && (
-            <button type="button"
-              onMouseDown={(e) => { e.preventDefault(); onSave(''); setEditing(false); }}
-              title="Voltar ao cálculo automático"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: SI.textMute, fontSize: 11, padding: 2 }}
-            >↻</button>
-          )}
-        </span>
-      ) : (
-        <button type="button" onClick={start}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'transparent', border: 'none', padding: '2px 4px',
-            cursor: 'pointer', fontFamily: 'inherit', borderRadius: 4,
-          }}
-        >
-          <span style={{ fontSize: 14, color: SI.greenDark, fontWeight: 700 }}>
-            {masked ? '••••••' : value}
-          </span>
-          <Icon.Pencil s={12} c={SI.teal}/>
-        </button>
-      )}
-    </div>
-  );
-}
-
-Object.assign(window, { SI, Icon, formatBRL, formatDateBR, DonutChart, EditableRow });
+Object.assign(window, { SI, Icon, formatBRL, maskValue, DonutChart });

@@ -1,56 +1,67 @@
-// app.jsx — main application
+// app.js — layout original + navegação por mês + backup
+
+const { useState, useMemo, useEffect } = React;
 
 const MONTHS = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
 ];
 
-const CURRENT_YEAR = new Date().getFullYear();
+const SEED = [
+  { id: 'a1', name: 'Poupança Sicredi',    amount: 18420.50, category: 'poupanca',  monthlyYield:  61.40 },
+  { id: 'a2', name: 'CDB Liquidez Diária', amount: 21800.00, category: 'rendaFixa', monthlyYield:  72.20 },
+  { id: 'a3', name: 'Tesouro IPCA+ 2029',  amount: 14200.48, category: 'tesouro',   monthlyYield:  48.30 },
+  { id: 'a4', name: 'ITUB4 + PETR4',       amount:  5912.00, category: 'acoes',     monthlyYield:  19.97 },
+  { id: 'a5', name: 'Fundo Multi Sicredi', amount:  1900.00, category: 'fundos',    monthlyYield:   9.90 },
+];
 
-// ─── Storage helpers ──────────────────────────────────────────
-function storageKey(year, month, type) {
-  return `ti_${year}_${month}_${type}`;
-}
+// ─── Storage helpers por mês ───────────────────────────────────
+function mkKey(year, month, type) { return `ti:${year}:${month}:${type}`; }
 
-function loadInvestments(year, month) {
+function loadItems(year, month) {
   try {
-    const raw = localStorage.getItem(storageKey(year, month, 'inv'));
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(mkKey(year, month, 'inv'));
+    if (!raw) return [];
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? p : [];
   } catch { return []; }
 }
 
-function saveInvestments(year, month, data) {
-  try { localStorage.setItem(storageKey(year, month, 'inv'), JSON.stringify(data)); } catch {}
+function saveItems(year, month, data) {
+  try { localStorage.setItem(mkKey(year, month, 'inv'), JSON.stringify(data)); } catch {}
 }
 
 function loadOverrides(year, month) {
   try {
-    const raw = localStorage.getItem(storageKey(year, month, 'ov'));
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+    const raw = localStorage.getItem(mkKey(year, month, 'ov'));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { monthYieldText: null, yearText: null };
 }
 
 function saveOverrides(year, month, data) {
-  try { localStorage.setItem(storageKey(year, month, 'ov'), JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(mkKey(year, month, 'ov'), JSON.stringify(data)); } catch {}
 }
 
 function loadRendimentos(year, month) {
   try {
-    const raw = localStorage.getItem(storageKey(year, month, 'rend'));
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(mkKey(year, month, 'rend'));
+    if (!raw) return [];
+    const p = JSON.parse(raw);
+    return Array.isArray(p) ? p : [];
   } catch { return []; }
 }
 
 function saveRendimentos(year, month, data) {
-  try { localStorage.setItem(storageKey(year, month, 'rend'), JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(mkKey(year, month, 'rend'), JSON.stringify(data)); } catch {}
 }
 
-// ─── Full backup / restore ────────────────────────────────────
+// ─── Backup helpers ────────────────────────────────────────────
 function exportBackup() {
   const backup = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith('ti_')) {
+    if (k && k.startsWith('ti:')) {
       try { backup[k] = JSON.parse(localStorage.getItem(k)); } catch { backup[k] = localStorage.getItem(k); }
     }
   }
@@ -58,20 +69,18 @@ function exportBackup() {
 }
 
 function importBackup(data) {
-  // Clear existing ti_ keys
   const toDelete = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith('ti_')) toDelete.push(k);
+    if (k && k.startsWith('ti:')) toDelete.push(k);
   }
   toDelete.forEach(k => localStorage.removeItem(k));
-  // Write new
   Object.entries(data).forEach(([k, v]) => {
     try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
   });
 }
 
-// ─── BackupModal ──────────────────────────────────────────────
+// ─── BackupModal ───────────────────────────────────────────────
 function BackupModal({ onClose }) {
   const [status, setStatus] = React.useState('');
   const fileRef = React.useRef(null);
@@ -82,12 +91,9 @@ function BackupModal({ onClose }) {
     const url = URL.createObjectURL(blob);
     const ts = new Date().toISOString().slice(0, 10);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_total_investido_${ts}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `backup_total_investido_${ts}.json`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
     setStatus('✅ Backup exportado com sucesso!');
     setTimeout(() => setStatus(''), 3000);
   }
@@ -100,696 +106,709 @@ function BackupModal({ onClose }) {
       try {
         const data = JSON.parse(ev.target.result);
         const keys = Object.keys(data);
-        const valid = keys.every(k => k.startsWith('ti_'));
-        if (!valid) { setStatus('❌ Arquivo inválido. Use um backup exportado pelo app.'); return; }
+        if (!keys.every(k => k.startsWith('ti:'))) {
+          setStatus('❌ Arquivo inválido. Use um backup exportado pelo app.'); return;
+        }
         importBackup(data);
-        setStatus(`✅ Backup restaurado! ${keys.length} registros importados. Recarregue a página.`);
-      } catch {
-        setStatus('❌ Erro ao ler o arquivo. Verifique se é um JSON válido.');
-      }
+        setStatus(`✅ Restaurado! ${keys.length} registros. Recarregue a página.`);
+      } catch { setStatus('❌ Erro ao ler o arquivo JSON.'); }
     };
     reader.readAsText(file);
     e.target.value = '';
   }
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 60,
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div
-        onClick={onClose}
-        style={{ position: 'absolute', inset: 0, background: 'rgba(20,30,25,0.5)' }}
-      />
+    <div style={{ position: 'absolute', inset: 0, zIndex: 60 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(20,30,25,0.5)' }}/>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        background: '#fff',
-        borderTopLeftRadius: 22, borderTopRightRadius: 22,
-        padding: '12px 20px 36px',
+        background: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        padding: '12px 18px 32px',
         boxShadow: '0 -12px 30px rgba(0,0,0,0.12)',
       }}>
-        <div style={{
-          width: 40, height: 4, borderRadius: 4, background: '#D9E1DC',
-          margin: '4px auto 16px',
-        }}/>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: SI.tealDark }}>
-            Backup & Restauração
-          </h2>
+        <div style={{ width: 40, height: 4, borderRadius: 4, background: '#D9E1DC', margin: '4px auto 14px' }}/>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: SI.tealDark }}>Backup & Restauração</h2>
           <button onClick={onClose} style={{ border: 'none', background: 'transparent', padding: 4, cursor: 'pointer' }}>
             <Icon.Close s={22}/>
           </button>
         </div>
-
-        <p style={{ fontSize: 14, color: SI.textMid, margin: '0 0 20px', lineHeight: 1.6 }}>
-          Salve todos os seus dados (todos os meses e anos) em um arquivo JSON.
-          Restaure quando trocar de dispositivo ou reinstalar o app.
+        <p style={{ fontSize: 13, color: SI.textMid, margin: '0 0 18px', lineHeight: 1.6 }}>
+          Salva todos os dados de todos os meses em um arquivo. Restaure ao trocar de dispositivo.
         </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <button
-            onClick={handleExport}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '14px 16px', borderRadius: 14,
-              background: SI.teal, border: 'none',
-              color: '#fff', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: '0 6px 16px rgba(0, 126, 122, 0.3)',
-            }}
-          >
-            <Icon.Download s={20} c="#fff"/>
-            Exportar backup
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button onClick={handleExport} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '13px', borderRadius: 12, background: SI.teal, border: 'none',
+            color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            ⬇ Exportar backup
           </button>
-
-          <button
-            onClick={() => fileRef.current && fileRef.current.click()}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '14px 16px', borderRadius: 14,
-              background: '#fff', border: `2px solid ${SI.greenPrimary}`,
-              color: SI.greenDark, fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            <Icon.Upload s={20} c={SI.greenDark}/>
-            Restaurar backup
+          <button onClick={() => fileRef.current && fileRef.current.click()} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '13px', borderRadius: 12, background: '#fff',
+            border: `2px solid ${SI.greenPrimary}`,
+            color: SI.greenDark, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            ⬆ Restaurar backup
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            style={{ display: 'none' }}
-          />
+          <input ref={fileRef} type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }}/>
         </div>
-
         {status && (
           <div style={{
-            marginTop: 16, padding: '12px 14px', borderRadius: 10,
+            marginTop: 14, padding: '11px 14px', borderRadius: 10,
             background: status.startsWith('✅') ? '#EAF7E0' : '#FDECEA',
             color: status.startsWith('✅') ? SI.greenDark : SI.danger,
-            fontSize: 14, fontWeight: 500, lineHeight: 1.5,
-          }}>
-            {status}
-          </div>
+            fontSize: 13, fontWeight: 500,
+          }}>{status}</div>
         )}
       </div>
     </div>
   );
 }
 
-// ─── Header ───────────────────────────────────────────────────
-function Header({ title, onBack, onGear }) {
+// 'YYYY-MM-DD' -> 'DD/MM/YYYY'
+function formatDateBR(iso) {
+  if (!iso || typeof iso !== 'string' || iso.indexOf('-') === -1) return iso || '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ─── App principal ─────────────────────────────────────────────
+function App() {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [monthIdx, setMonthIdx] = useState(now.getMonth());
+
+  const [items, setItems] = useState(() => loadItems(year, monthIdx));
+  const [overrides, setOverrides] = useState(() => loadOverrides(year, monthIdx));
+  const [visible, setVisible] = useState(true);
+  const [sheet, setSheet] = useState(null);
+  const [view, setView] = useState('home'); // 'home' | 'extrato'
+  const [showBackup, setShowBackup] = useState(false);
+
+  // Recarrega dados ao mudar de mês/ano
+  useEffect(() => {
+    setItems(loadItems(year, monthIdx));
+    setOverrides(loadOverrides(year, monthIdx));
+  }, [year, monthIdx]);
+
+  useEffect(() => { saveItems(year, monthIdx, items); }, [items, year, monthIdx]);
+  useEffect(() => { saveOverrides(year, monthIdx, overrides); }, [overrides, year, monthIdx]);
+
+  function prevMonth() {
+    if (monthIdx === 0) { setYear(y => y - 1); setMonthIdx(11); }
+    else setMonthIdx(m => m - 1);
+    setView('home'); setSheet(null);
+  }
+  function nextMonth() {
+    if (monthIdx === 11) { setYear(y => y + 1); setMonthIdx(0); }
+    else setMonthIdx(m => m + 1);
+    setView('home'); setSheet(null);
+  }
+
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  const monthYield = items.reduce((s, i) => s + (i.monthlyYield || 0), 0);
+  const yearPct = total > 0 ? (monthYield * 12) / total * 100 : 0;
+
+  const allocation = useMemo(() => {
+    const map = new Map();
+    items.forEach((i) => {
+      const cat = CATEGORIES.find((c) => c.key === i.category) || CATEGORIES[0];
+      const cur = map.get(cat.key) || { ...cat, value: 0, count: 0 };
+      cur.value += i.amount; cur.count += 1;
+      map.set(cat.key, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.value - a.value);
+  }, [items]);
+
+  function openAdd() { setSheet({ mode: 'add' }); }
+  function openEdit(id) { setSheet({ mode: 'edit', id }); }
+  function closeSheet() { setSheet(null); }
+
+  function saveItem(data) {
+    if (sheet?.mode === 'edit') {
+      setItems(arr => arr.map(i => i.id === sheet.id ? { ...i, ...data } : i));
+    } else {
+      setItems(arr => [...arr, { id: 'i' + Date.now(), ...data }]);
+    }
+    closeSheet();
+  }
+  function deleteItem(id) { setItems(arr => arr.filter(i => i.id !== id)); closeSheet(); }
+
+  const editingItem = sheet?.mode === 'edit' ? items.find(i => i.id === sheet.id) : null;
+
+  // ── Cabeçalho com setas de mês (igual ao original mas com setas) ──
+  const monthHeader = (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '20px 16px 14px', minHeight: 84, gap: 8,
+    }}>
+      <button style={iconBtn} aria-label="Mês anterior" onClick={prevMonth}>
+        <Icon.Back/>
+      </button>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <img
+          src="logo.png" alt="Logo"
+          style={{ height: 44, maxWidth: '55%', width: 'auto', display: 'block', objectFit: 'contain' }}
+        />
+        <div style={{ fontSize: 13, color: SI.teal, fontWeight: 700, letterSpacing: 0.2 }}>
+          {MONTHS[monthIdx]} {year}
+        </div>
+      </div>
+
+      <button style={iconBtn} aria-label="Próximo mês" onClick={nextMonth}>
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <path d="M9 6l6 6-6 6" stroke={SI.textDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  );
+
+  if (view === 'extrato') {
+    return (
+      <ResponsiveShell>
+        <ExtratoScreen
+          year={year} monthIdx={monthIdx}
+          total={total} monthYield={monthYield} yearPct={yearPct}
+          overrides={overrides} setOverrides={setOverrides}
+          visible={visible} onToggleVisible={() => setVisible(v => !v)}
+          onBack={() => setView('home')}
+          onGear={() => setShowBackup(true)}
+          monthHeader={monthHeader}
+        />
+        {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
+      </ResponsiveShell>
+    );
+  }
+
+  return (
+    <ResponsiveShell>
+      <div style={{
+        position: 'relative', minHeight: '100vh',
+        background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+        color: SI.textDark,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        {/* Cabeçalho com setas */}
+        {monthHeader}
+
+        {/* Rótulo da página */}
+        <div style={{
+          textAlign: 'center', color: SI.teal, fontWeight: 700,
+          fontSize: 17, padding: '6px 0 14px', letterSpacing: 0.1,
+        }}>
+          Investimentos
+        </div>
+
+        {/* Total Investido card */}
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, color: SI.textDark, fontWeight: 500, letterSpacing: -0.2 }}>
+                  Total Investido
+                </div>
+                <div style={{ fontSize: 12, color: SI.textMute, marginTop: 2 }}>
+                  Aplicações + rendimentos
+                </div>
+              </div>
+            </div>
+            <button style={{ ...iconBtn, marginTop: 2 }} aria-label="Backup"
+              onClick={() => setShowBackup(true)}>
+              <Icon.Gear/>
+            </button>
+          </div>
+
+          <div style={{
+            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+            marginTop: 14, padding: '0 4px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: 15, color: SI.textMid, fontWeight: 500 }}>R$</span>
+              <span style={{
+                fontSize: 38, fontWeight: 700, color: SI.greenPrimary,
+                letterSpacing: -1, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+              }}>
+                {visible ? formatBRL(total) : '••••••'}
+              </span>
+            </div>
+            <button onClick={() => setVisible(v => !v)} style={iconBtn}
+              aria-label={visible ? 'Ocultar valores' : 'Mostrar valores'}>
+              {visible ? <Icon.EyeOff/> : <Icon.Eye/>}
+            </button>
+          </div>
+
+          <div style={{
+            marginTop: 18, paddingTop: 14, borderTop: `1px solid ${SI.border}`,
+            display: 'grid', gap: 8,
+          }}>
+            <EditableRow
+              label="Rentabilidade do mês"
+              value={overrides.monthYieldText ?? `R$ ${formatBRL(monthYield)}`}
+              hasOverride={!!overrides.monthYieldText}
+              masked={!visible}
+              onSave={(v) => setOverrides(o => ({ ...o, monthYieldText: v || null }))}
+            />
+            <EditableRow
+              label="Desempenho no ano"
+              value={overrides.yearText ?? `${yearPct.toFixed(0)}% poup.`}
+              hasOverride={!!overrides.yearText}
+              masked={!visible}
+              onSave={(v) => setOverrides(o => ({ ...o, yearText: v || null }))}
+            />
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <QuickActions onAdd={openAdd} onExtrato={() => setView('extrato')}/>
+
+        {/* Alocação */}
+        <div style={{ ...cardStyle, marginTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: SI.textDark }}>Alocação da Carteira</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <span style={{ fontSize: 13, color: SI.textMid }}>Visualizando: 1 Cooperativa</span>
+                <Icon.Chevron s={14}/>
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '18px 0 6px' }}>
+            <DonutChart data={allocation} visible={visible}/>
+          </div>
+          <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+            {allocation.map((seg) => {
+              const pct = total > 0 ? (seg.value / total) * 100 : 0;
+              return (
+                <div key={seg.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: seg.color }}/>
+                  <span style={{ flex: 1, fontSize: 13, color: SI.textDark, fontWeight: 500 }}>{seg.label}</span>
+                  <span style={{ fontSize: 12, color: SI.textMid, minWidth: 36, textAlign: 'right' }}>{pct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 13, color: SI.greenDark, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 88, textAlign: 'right' }}>
+                    {visible ? `R$ ${formatBRL(seg.value)}` : '••••••'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Lista de investimentos */}
+        <div style={{ ...cardStyle, marginTop: 12, marginBottom: 96 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: SI.textDark }}>Meus investimentos</div>
+            <div style={{ fontSize: 12, color: SI.textMute }}>{items.length} {items.length === 1 ? 'ativo' : 'ativos'}</div>
+          </div>
+
+          {items.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: SI.textMute, fontSize: 14 }}>
+              Nenhum investimento neste mês.<br/>Toque em <strong style={{ color: SI.greenDark }}>+</strong> para adicionar.
+            </div>
+          ) : (
+            <div>
+              {items.map((it) => {
+                const cat = CATEGORIES.find(c => c.key === it.category) || CATEGORIES[0];
+                return (
+                  <button key={it.id} onClick={() => openEdit(it.id)} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '14px 4px', background: 'transparent', border: 'none',
+                    borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: SI.border,
+                    cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                  }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 10, background: `${cat.color}1A`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <span style={{ width: 12, height: 12, borderRadius: '50%', background: cat.color }}/>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 600, color: SI.textDark, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {it.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: SI.textMute, marginTop: 2 }}>
+                        {cat.label}
+                        {it.monthlyYield > 0 && (
+                          <span style={{ color: SI.greenDark, marginLeft: 8, fontWeight: 600 }}>
+                            +{visible ? `R$ ${formatBRL(it.monthlyYield)}` : '•••'} /mês
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: SI.greenDark, fontVariantNumeric: 'tabular-nums' }}>
+                        {visible ? `R$ ${formatBRL(it.amount)}` : '••••'}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                        <Icon.Pencil s={14} c={SI.teal}/>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* FAB */}
+        <button onClick={openAdd} aria-label="Adicionar investimento" style={{
+          position: 'absolute', right: 20, bottom: 24,
+          width: 60, height: 60, borderRadius: '50%',
+          background: SI.greenPrimary, color: '#fff', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 10px 24px rgba(122, 182, 72, 0.5)',
+          cursor: 'pointer', zIndex: 30,
+        }}>
+          <Icon.Plus s={28}/>
+        </button>
+
+        <BottomSheet open={!!sheet} onClose={closeSheet}
+          title={sheet?.mode === 'edit' ? 'Editar investimento' : 'Novo investimento'}>
+          {sheet && (
+            <InvestmentForm
+              key={sheet.mode === 'edit' ? sheet.id : 'add'}
+              initial={editingItem}
+              onSave={saveItem}
+              onCancel={closeSheet}
+              onDelete={sheet.mode === 'edit' ? () => deleteItem(sheet.id) : undefined}
+            />
+          )}
+        </BottomSheet>
+
+        {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
+      </div>
+    </ResponsiveShell>
+  );
+}
+
+// ─── Tela de Extrato ───────────────────────────────────────────
+function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, setOverrides, visible, onToggleVisible, onBack, onGear, monthHeader }) {
+  const [rends, setRends] = useState(() => loadRendimentos(year, monthIdx));
+  const [sheet, setSheet] = useState(null);
+
+  useEffect(() => { saveRendimentos(year, monthIdx, rends); }, [rends, year, monthIdx]);
+
+  const groups = useMemo(() => {
+    const map = new Map();
+    rends.forEach(r => {
+      const yr = (r.date || '').slice(0, 4) || '—';
+      if (!map.has(yr)) map.set(yr, []);
+      map.get(yr).push(r);
+    });
+    const arr = Array.from(map.entries()).map(([yr, list]) => ({
+      year: yr,
+      list: list.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')),
+      subtotal: list.reduce((s, r) => s + (Number(r.amount) || 0), 0),
+    }));
+    arr.sort((a, b) => b.year.localeCompare(a.year));
+    return arr;
+  }, [rends]);
+
+  function openAdd() { setSheet({ mode: 'add' }); }
+  function openEdit(id) { setSheet({ mode: 'edit', id }); }
+  function closeSheet() { setSheet(null); }
+
+  function saveRend(data) {
+    if (sheet?.mode === 'edit') {
+      setRends(arr => arr.map(r => r.id === sheet.id ? { ...r, ...data } : r));
+    } else {
+      setRends(arr => [...arr, { id: 'r' + Date.now(), ...data }]);
+    }
+    closeSheet();
+  }
+  function deleteRend(id) { setRends(arr => arr.filter(r => r.id !== id)); closeSheet(); }
+
+  const editing = sheet?.mode === 'edit' ? rends.find(r => r.id === sheet.id) : null;
+
   return (
     <div style={{
-      background: '#fff',
-      borderBottom: `1px solid ${SI.border}`,
-      padding: '14px 16px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      position: 'sticky', top: 0, zIndex: 10,
+      position: 'relative', minHeight: '100vh',
+      background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+      color: SI.textDark, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        {onBack && (
-          <button
-            onClick={onBack}
-            style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex' }}
-            aria-label="Voltar"
-          >
-            <Icon.Back s={22} c={SI.tealDark}/>
+      {/* Cabeçalho com setas — mesmo do home */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '20px 16px 14px', minHeight: 84, gap: 8,
+      }}>
+        <button style={iconBtn} aria-label="Voltar" onClick={onBack}><Icon.Back/></button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <img src="logo.png" alt="Logo" style={{ height: 44, maxWidth: '55%', width: 'auto', objectFit: 'contain' }}/>
+          <div style={{ fontSize: 13, color: SI.teal, fontWeight: 700, letterSpacing: 0.2 }}>
+            {MONTHS[monthIdx]} {year}
+          </div>
+        </div>
+        <button style={iconBtn} aria-label="Backup" onClick={onGear}><Icon.Gear/></button>
+      </div>
+
+      {/* Rótulo */}
+      <div style={{ textAlign: 'center', color: SI.teal, fontWeight: 700, fontSize: 17, padding: '6px 0 14px' }}>
+        Extrato
+      </div>
+
+      {/* Card total — igual ao home */}
+      <div style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, color: SI.textDark, fontWeight: 500, letterSpacing: -0.2 }}>Total Investido</div>
+              <div style={{ fontSize: 12, color: SI.textMute, marginTop: 2 }}>Aplicações + rendimentos</div>
+            </div>
+          </div>
+          <button style={{ ...iconBtn, marginTop: 2 }} onClick={onGear}><Icon.Gear/></button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, padding: '0 4px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 15, color: SI.textMid, fontWeight: 500 }}>R$</span>
+            <span style={{ fontSize: 38, fontWeight: 700, color: SI.greenPrimary, letterSpacing: -1, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {visible ? formatBRL(total) : '••••••'}
+            </span>
+          </div>
+          <button onClick={onToggleVisible} style={iconBtn}>
+            {visible ? <Icon.EyeOff/> : <Icon.Eye/>}
+          </button>
+        </div>
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${SI.border}`, display: 'grid', gap: 8 }}>
+          <EditableRow
+            label="Rentabilidade do mês"
+            value={overrides.monthYieldText ?? `R$ ${formatBRL(monthYield)}`}
+            hasOverride={!!overrides.monthYieldText}
+            masked={!visible}
+            onSave={(v) => setOverrides(o => ({ ...o, monthYieldText: v || null }))}
+          />
+          <EditableRow
+            label="Desempenho no ano"
+            value={overrides.yearText ?? `${yearPct.toFixed(0)}% poup.`}
+            hasOverride={!!overrides.yearText}
+            masked={!visible}
+            onSave={(v) => setOverrides(o => ({ ...o, yearText: v || null }))}
+          />
+        </div>
+      </div>
+
+      {/* Lista rendimentos */}
+      <div style={{ ...cardStyle, marginTop: 12, marginBottom: 96 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: SI.textDark }}>Rendimentos</div>
+          <div style={{ fontSize: 12, color: SI.textMute }}>Toque para editar</div>
+        </div>
+
+        {rends.length === 0 ? (
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: SI.textMute, fontSize: 14 }}>
+            Nenhum rendimento neste mês.<br/>Toque em <strong style={{ color: SI.greenDark }}>+</strong> para adicionar.
+          </div>
+        ) : (
+          groups.map(g => (
+            <div key={g.year} style={{ marginTop: 14 }}>
+              <div style={{ textAlign: 'center', paddingBottom: 6, borderBottom: `2px solid ${SI.border}` }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: SI.teal }}>{g.year}</span>
+              </div>
+              {g.list.map(r => (
+                <button key={r.id} onClick={() => openEdit(r.id)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '13px 4px', background: 'transparent', border: 'none',
+                  borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: SI.border,
+                  cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                }}>
+                  <span style={{ fontSize: 13.5, color: SI.textMid, fontVariantNumeric: 'tabular-nums', minWidth: 84 }}>
+                    {formatDateBR(r.date)}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 14, color: SI.textDark, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.label || 'Rendimento'}
+                  </span>
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: SI.greenDark, fontVariantNumeric: 'tabular-nums' }}>
+                    {visible ? `R$ ${formatBRL(r.amount)}` : '••••'}
+                  </span>
+                  <Icon.Pencil s={13} c={SI.teal}/>
+                </button>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      <button onClick={openAdd} aria-label="Adicionar rendimento" style={{
+        position: 'absolute', right: 20, bottom: 24,
+        width: 60, height: 60, borderRadius: '50%',
+        background: SI.greenPrimary, border: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 10px 24px rgba(122, 182, 72, 0.5)',
+        cursor: 'pointer', zIndex: 30,
+      }}>
+        <Icon.Plus s={28}/>
+      </button>
+
+      <BottomSheet open={!!sheet} onClose={closeSheet}
+        title={sheet?.mode === 'edit' ? 'Editar rendimento' : 'Novo rendimento'}>
+        {sheet && (
+          <RendimentoForm
+            key={sheet.mode === 'edit' ? sheet.id : 'add'}
+            initial={editing}
+            onSave={saveRend}
+            onCancel={closeSheet}
+            onDelete={sheet.mode === 'edit' ? () => deleteRend(sheet.id) : undefined}
+          />
+        )}
+      </BottomSheet>
+    </div>
+  );
+}
+
+// ─── RendimentoForm ────────────────────────────────────────────
+function RendimentoForm({ initial, onSave, onCancel, onDelete }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = React.useState(initial?.date || today);
+  const [label, setLabel] = React.useState(initial?.label || 'Rendimento');
+  const [amount, setAmount] = React.useState(initial?.amount ?? 0);
+  const canSave = !!date && amount > 0;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ fontSize: 12, color: SI.textMid, marginBottom: 6, fontWeight: 500 }}>Valor do rendimento</div>
+        <MoneyField value={amount} onChange={setAmount} autoFocus={!initial}/>
+      </div>
+      <div>
+        <div style={{ fontSize: 12, color: SI.textMid, marginBottom: 6, fontWeight: 500 }}>Data</div>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{
+          width: '100%', boxSizing: 'border-box', padding: '11px 14px', borderRadius: 10,
+          background: SI.bgSoft, border: `1.5px solid ${SI.border}`,
+          fontSize: 15, color: SI.textDark, outline: 'none', fontFamily: 'inherit',
+        }}/>
+      </div>
+      <TextField label="Descrição" value={label} onChange={setLabel} placeholder="Ex: Rendimento"/>
+      <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+        {onDelete && (
+          <button type="button" onClick={onDelete} style={{
+            padding: '13px 16px', borderRadius: 12, border: `1.5px solid ${SI.danger}33`,
+            background: '#fff', color: SI.danger, fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+          }}>
+            <Icon.Trash s={16} c={SI.danger}/> Excluir
           </button>
         )}
-        <span style={{ fontSize: 17, fontWeight: 700, color: SI.tealDark }}>{title}</span>
+        <button type="button" onClick={() => canSave && onSave({ date, label: label.trim() || 'Rendimento', amount })}
+          disabled={!canSave} style={{
+            flex: 1, padding: '13px 16px', borderRadius: 12, border: 'none',
+            background: canSave ? SI.greenPrimary : '#C8D6CC',
+            color: '#fff', fontSize: 15, fontWeight: 700,
+            cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+          }}>
+          {initial ? 'Salvar alterações' : 'Adicionar rendimento'}
+        </button>
       </div>
-      {onGear && (
-        <button
-          onClick={onGear}
-          style={{ background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex' }}
-          aria-label="Configurações"
-        >
-          <Icon.Gear s={22} c={SI.textMid}/>
+    </div>
+  );
+}
+
+// ─── ResponsiveShell ───────────────────────────────────────────
+function ResponsiveShell({ children }) {
+  const [isMobile, setIsMobile] = React.useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches
+  );
+  React.useEffect(() => {
+    const mql = window.matchMedia('(max-width: 600px)');
+    const handler = e => setIsMobile(e.matches);
+    mql.addEventListener ? mql.addEventListener('change', handler) : mql.addListener(handler);
+    return () => mql.removeEventListener ? mql.removeEventListener('change', handler) : mql.removeListener(handler);
+  }, []);
+
+  if (isMobile) return (
+    <div style={{ width: '100vw', minHeight: '100vh', background: SI.bg, overflow: 'hidden' }}>
+      {children}
+    </div>
+  );
+  return (
+    <div style={{
+      width: 412, height: 892, borderRadius: 28, overflow: 'auto',
+      background: SI.bg, border: '8px solid rgba(116,119,117,0.4)',
+      boxShadow: '0 30px 80px rgba(0,0,0,0.25)',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── Subcomponents ─────────────────────────────────────────────
+const iconBtn = {
+  width: 38, height: 38, borderRadius: 10,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+};
+
+const cardStyle = {
+  margin: '0 16px', padding: '18px 18px 16px',
+  background: '#fff', borderRadius: 14,
+  border: `1px solid ${SI.border}`,
+  boxShadow: '0 2px 10px rgba(16, 40, 26, 0.04)',
+};
+
+function EditableRow({ label, value, hasOverride, masked, onSave }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(value);
+  const inputRef = React.useRef(null);
+  function start() { setDraft(value); setEditing(true); setTimeout(() => inputRef.current && inputRef.current.select(), 0); }
+  function commit() { onSave(draft.trim()); setEditing(false); }
+  function cancel() { setEditing(false); }
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontSize: 14, color: SI.teal }}>{label}</span>
+      {editing ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
+            onBlur={commit}
+            style={{ fontSize: 14, fontWeight: 700, color: SI.greenDark, textAlign: 'right', width: 130, padding: '4px 8px', borderRadius: 6, border: `1.5px solid ${SI.greenPrimary}`, background: '#fff', outline: 'none', fontFamily: 'inherit' }}
+          />
+          {hasOverride && (
+            <button type="button" onMouseDown={e => { e.preventDefault(); onSave(''); setEditing(false); }}
+              title="Voltar ao cálculo automático"
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: SI.textMute, fontSize: 11, padding: 2 }}>↻</button>
+          )}
+        </span>
+      ) : (
+        <button type="button" onClick={start} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: '2px 4px', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 4 }}>
+          <span style={{ fontSize: 14, color: SI.greenDark, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {masked ? '••••••' : value}
+          </span>
+          <Icon.Pencil s={12} c={SI.teal}/>
         </button>
       )}
     </div>
   );
 }
 
-// ─── MonthCard (on home screen) ───────────────────────────────
-function MonthCard({ year, monthIndex, onClick }) {
-  const invs = loadInvestments(year, monthIndex);
-  const rends = loadRendimentos(year, monthIndex);
-  const total = invs.reduce((s, i) => s + (i.amount || 0), 0);
-  const rendTotal = rends.reduce((s, r) => s + (r.amount || 0), 0);
-  const hasData = invs.length > 0 || rends.length > 0;
-  const monthName = MONTHS[monthIndex];
-
+function QuickActions({ onAdd, onExtrato }) {
+  const tiles = [
+    { icon: <Icon.Chart c={SI.olive}/>, label: 'Home Broker' },
+    { icon: <Icon.Doc c={SI.greenPrimary}/>, label: 'Guia do\nInvestidor' },
+    { icon: <Icon.Calc c={SI.greenPrimary}/>, label: 'Simulador' },
+    { icon: <Icon.Wallet c={SI.olive}/>, label: 'Extrato', onClick: onExtrato },
+  ];
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%', textAlign: 'left', cursor: 'pointer',
-        background: hasData ? '#fff' : SI.bgSoft,
-        border: `1.5px solid ${hasData ? SI.border : '#EEF2EE'}`,
-        borderRadius: 16, padding: '14px 16px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        fontFamily: 'inherit',
-        boxShadow: hasData ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
-        transition: 'box-shadow 0.15s ease',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-          width: 42, height: 42, borderRadius: 12,
-          background: hasData ? `${SI.greenPrimary}15` : '#E8EDE8',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon.Calendar s={20} c={hasData ? SI.greenPrimary : SI.textMute}/>
-        </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: hasData ? SI.tealDark : SI.textMute }}>
-            {monthName}
-          </div>
-          {hasData ? (
-            <div style={{ fontSize: 12, color: SI.textMute, marginTop: 2 }}>
-              {invs.length} investimento{invs.length !== 1 ? 's' : ''}
-              {rendTotal > 0 ? ` · R$ ${formatBRL(rendTotal)} rendimentos` : ''}
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: '#B0BDB5', marginTop: 2 }}>Nenhum dado</div>
-          )}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {hasData && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: SI.greenDark }}>
-              R$ {formatBRL(total)}
-            </div>
-            <div style={{ fontSize: 11, color: SI.textMute }}>investido</div>
-          </div>
-        )}
-        <Icon.Chevron s={16} c={SI.textMute}/>
-      </div>
-    </button>
-  );
-}
-
-// ─── YearHome (list of months) ────────────────────────────────
-function YearHome({ year, onSelectMonth, onGear }) {
-  const [yearInput, setYearInput] = React.useState(String(year));
-  const [currentYear, setCurrentYear] = React.useState(year);
-
-  function applyYear(y) {
-    const n = parseInt(y, 10);
-    if (!isNaN(n) && n > 1900 && n < 2100) setCurrentYear(n);
-  }
-
-  const totalAll = MONTHS.reduce((sum, _, i) => {
-    const invs = loadInvestments(currentYear, i);
-    return sum + invs.reduce((s, inv) => s + (inv.amount || 0), 0);
-  }, 0);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: SI.bgSoft }}>
-      <Header title="Total Investido" onGear={onGear}/>
-
-      {/* Year selector */}
-      <div style={{
-        background: `linear-gradient(145deg, ${SI.tealDark}, ${SI.greenDark})`,
-        padding: '20px 20px 28px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <button
-            onClick={() => { const y = currentYear - 1; setCurrentYear(y); setYearInput(String(y)); }}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', color: '#fff', fontSize: 18, fontWeight: 700, fontFamily: 'inherit' }}
-          >‹</button>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
-              {currentYear}
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-              Selecione um mês para gerenciar
-            </div>
-          </div>
-          <button
-            onClick={() => { const y = currentYear + 1; setCurrentYear(y); setYearInput(String(y)); }}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', color: '#fff', fontSize: 18, fontWeight: 700, fontFamily: 'inherit' }}
-          >›</button>
-        </div>
-        {totalAll > 0 && (
-          <div style={{
-            background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    <div style={{ marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 10, padding: '0 16px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {tiles.map((t, i) => (
+          <button key={i} type="button" onClick={t.onClick} style={{
+            flex: '0 0 auto', width: 152, padding: '14px 14px',
+            background: '#fff', borderRadius: 12, border: `1px solid ${SI.border}`,
+            display: 'flex', alignItems: 'center', gap: 10,
+            boxShadow: '0 2px 8px rgba(16, 40, 26, 0.04)',
+            cursor: t.onClick ? 'pointer' : 'default',
+            textAlign: 'left', fontFamily: 'inherit',
           }}>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Total acumulado {currentYear}</span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>R$ {formatBRL(totalAll)}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Months list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 32px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {MONTHS.map((_, i) => (
-            <MonthCard
-              key={i}
-              year={currentYear}
-              monthIndex={i}
-              onClick={() => onSelectMonth(currentYear, i)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── MonthScreen — tabs: Investimentos / Extrato ───────────────
-function MonthScreen({ year, monthIndex, onBack, onGear }) {
-  const [tab, setTab] = React.useState('inv');
-  const [investments, setInvestments] = React.useState(() => loadInvestments(year, monthIndex));
-  const [overrides, setOverrides] = React.useState(() => loadOverrides(year, monthIndex));
-  const [rendimentos, setRendimentos] = React.useState(() => loadRendimentos(year, monthIndex));
-  const [masked, setMasked] = React.useState(false);
-  const [sheet, setSheet] = React.useState(null); // null | { mode: 'add'|'edit', item?, index? }
-  const [rendSheet, setRendSheet] = React.useState(null);
-
-  const monthName = MONTHS[monthIndex];
-
-  // ── Investment helpers ──
-  function persistInv(data) { saveInvestments(year, monthIndex, data); setInvestments(data); }
-  function persistOv(data) { saveOverrides(year, monthIndex, data); setOverrides(data); }
-  function persistRend(data) { saveRendimentos(year, monthIndex, data); setRendimentos(data); }
-
-  function addInvestment(inv) {
-    const next = [...investments, { ...inv, id: Date.now() }];
-    persistInv(next);
-    setSheet(null);
-  }
-  function editInvestment(idx, inv) {
-    const next = investments.map((it, i) => i === idx ? { ...it, ...inv } : it);
-    persistInv(next);
-    setSheet(null);
-  }
-  function deleteInvestment(idx) {
-    const next = investments.filter((_, i) => i !== idx);
-    persistInv(next);
-    setSheet(null);
-  }
-
-  function addRendimento(r) {
-    const next = [...rendimentos, { ...r, id: Date.now() }];
-    persistRend(next);
-    setRendSheet(null);
-  }
-  function editRendimento(idx, r) {
-    const next = rendimentos.map((it, i) => i === idx ? { ...it, ...r } : it);
-    persistRend(next);
-    setRendSheet(null);
-  }
-  function deleteRendimento(idx) {
-    const next = rendimentos.filter((_, i) => i !== idx);
-    persistRend(next);
-    setRendSheet(null);
-  }
-
-  // ── Calculations ──
-  const totalInvested = investments.reduce((s, i) => s + (i.amount || 0), 0);
-  const autoMonthlyYield = investments.reduce((s, i) => s + (i.monthlyYield || 0), 0);
-  const autoYearPct = totalInvested > 0
-    ? ((autoMonthlyYield / totalInvested) * 100 * 12).toFixed(2) + '%'
-    : '0,00%';
-
-  const displayMonthlyYield = overrides.monthlyYield !== undefined
-    ? overrides.monthlyYield
-    : `R$ ${formatBRL(autoMonthlyYield)}`;
-  const displayYearPct = overrides.yearPct !== undefined
-    ? overrides.yearPct
-    : autoYearPct;
-
-  // Category breakdown for donut
-  const catMap = {};
-  investments.forEach(inv => {
-    catMap[inv.category] = (catMap[inv.category] || 0) + (inv.amount || 0);
-  });
-  const donutData = CATEGORIES
-    .filter(c => catMap[c.key] > 0)
-    .map(c => ({ label: c.label, value: catMap[c.key], color: c.color }));
-
-  // Total rendimentos
-  const totalRend = rendimentos.reduce((s, r) => s + (r.amount || 0), 0);
-
-  // Group rendimentos by year desc, then by date desc within
-  const rendByYear = rendimentos.reduce((acc, r) => {
-    const y = (r.date || '').slice(0, 4) || '—';
-    if (!acc[y]) acc[y] = [];
-    acc[y].push(r);
-    return acc;
-  }, {});
-  const rendYears = Object.keys(rendByYear).sort((a, b) => b - a);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: SI.bgSoft, position: 'relative' }}>
-      <Header
-        title={`${monthName} ${year}`}
-        onBack={onBack}
-        onGear={onGear}
-      />
-
-      {/* Tabs */}
-      <div style={{
-        display: 'flex', background: '#fff',
-        borderBottom: `1px solid ${SI.border}`,
-      }}>
-        {[['inv','Investimentos'],['ext','Extrato']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            style={{
-              flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
-              fontSize: 14, fontWeight: tab === key ? 700 : 500,
-              color: tab === key ? SI.tealDark : SI.textMute,
-              borderBottom: `2.5px solid ${tab === key ? SI.tealDark : 'transparent'}`,
-              cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'color 0.15s',
-            }}
-          >
-            {label}
+            {t.icon}
+            <div style={{ fontSize: 13, color: SI.textDark, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2 }}>{t.label}</div>
           </button>
         ))}
       </div>
-
-      {/* ── TAB: INVESTIMENTOS ── */}
-      {tab === 'inv' && (
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 90 }}>
-          {/* Summary card */}
-          <div style={{
-            background: `linear-gradient(145deg, ${SI.tealDark}, ${SI.greenDark})`,
-            padding: '20px 20px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                  Total Investido
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginTop: 4, letterSpacing: -0.5 }}>
-                  {masked ? '••••••' : `R$ ${formatBRL(totalInvested)}`}
-                </div>
-              </div>
-              <button
-                onClick={() => setMasked(m => !m)}
-                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', display: 'flex' }}
-              >
-                {masked ? <Icon.EyeOff s={20} c="#fff"/> : <Icon.Eye s={20} c="#fff"/>}
-              </button>
-            </div>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '14px 0' }}/>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <EditableRow
-                label="Rentabilidade do mês"
-                value={displayMonthlyYield}
-                hasOverride={overrides.monthlyYield !== undefined}
-                masked={masked}
-                onSave={(v) => {
-                  if (!v) { const n = {...overrides}; delete n.monthlyYield; persistOv(n); }
-                  else persistOv({...overrides, monthlyYield: v});
-                }}
-              />
-              <EditableRow
-                label="Desempenho no ano"
-                value={displayYearPct}
-                hasOverride={overrides.yearPct !== undefined}
-                masked={masked}
-                onSave={(v) => {
-                  if (!v) { const n = {...overrides}; delete n.yearPct; persistOv(n); }
-                  else persistOv({...overrides, yearPct: v});
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Donut */}
-          {donutData.length > 0 && (
-            <div style={{ background: '#fff', margin: '12px 16px', borderRadius: 16, padding: '16px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: SI.textMid, marginBottom: 12, letterSpacing: 0.3, textTransform: 'uppercase' }}>
-                Alocação
-              </div>
-              <DonutChart data={donutData} size={190} thickness={32} visible={!masked}/>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, justifyContent: 'center' }}>
-                {donutData.map((d) => {
-                  const pct = totalInvested > 0 ? ((d.value / totalInvested) * 100).toFixed(1) : 0;
-                  return (
-                    <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: d.color, display: 'inline-block' }}/>
-                      <span style={{ fontSize: 12, color: SI.textMid }}>{d.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: SI.textDark }}>{pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Investments list */}
-          <div style={{ padding: '0 16px', marginTop: investments.length === 0 ? 20 : 0 }}>
-            {investments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: SI.textMute }}>
-                <Icon.Wallet s={40} c={SI.border}/>
-                <div style={{ marginTop: 10, fontSize: 15, fontWeight: 500 }}>Nenhum investimento ainda</div>
-                <div style={{ marginTop: 4, fontSize: 13 }}>Toque no + para adicionar</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {investments.map((inv, i) => {
-                  const cat = CATEGORIES.find(c => c.key === inv.category) || CATEGORIES[0];
-                  return (
-                    <div key={inv.id || i}
-                      style={{
-                        background: '#fff', borderRadius: 14, padding: '14px 16px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                        border: `1px solid ${SI.border}`,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }}/>
-                            <span style={{ fontSize: 15, fontWeight: 700, color: SI.tealDark }}>{inv.name}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: SI.textMute, marginLeft: 18 }}>{cat.label}</div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: masked ? SI.textMute : SI.greenDark }}>
-                            {masked ? '••••' : `R$ ${formatBRL(inv.amount)}`}
-                          </div>
-                          {inv.monthlyYield > 0 && (
-                            <div style={{ fontSize: 12, color: SI.greenPrimary, marginTop: 2 }}>
-                              +{masked ? '••' : `R$ ${formatBRL(inv.monthlyYield)}`}/mês
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setSheet({ mode: 'edit', item: inv, index: i })}
-                        style={{
-                          marginTop: 10, width: '100%', padding: '8px', borderRadius: 8,
-                          border: `1px solid ${SI.border}`, background: SI.bgSoft,
-                          color: SI.teal, fontSize: 13, fontWeight: 600,
-                          cursor: 'pointer', fontFamily: 'inherit',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        }}
-                      >
-                        <Icon.Pencil s={13} c={SI.teal}/> Editar
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* FAB */}
-          <button
-            onClick={() => setSheet({ mode: 'add' })}
-            aria-label="Adicionar investimento"
-            style={{
-              position: 'absolute', bottom: 28, right: 24,
-              width: 56, height: 56, borderRadius: '50%',
-              background: SI.greenPrimary, border: 'none',
-              boxShadow: '0 6px 20px rgba(122,182,72,0.45)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Icon.Plus s={28} c="#fff"/>
-          </button>
-        </div>
-      )}
-
-      {/* ── TAB: EXTRATO ── */}
-      {tab === 'ext' && (
-        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 90 }}>
-          {/* Summary */}
-          <div style={{
-            background: `linear-gradient(145deg, ${SI.olive}, #8D7B2B)`,
-            padding: '20px 20px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                  Total em Rendimentos
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginTop: 4, letterSpacing: -0.5 }}>
-                  {masked ? '••••••' : `R$ ${formatBRL(totalRend)}`}
-                </div>
-              </div>
-              <button
-                onClick={() => setMasked(m => !m)}
-                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, padding: 10, cursor: 'pointer', display: 'flex' }}
-              >
-                {masked ? <Icon.EyeOff s={20} c="#fff"/> : <Icon.Eye s={20} c="#fff"/>}
-              </button>
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>
-              {rendimentos.length} lançamento{rendimentos.length !== 1 ? 's' : ''} em {monthName}
-            </div>
-          </div>
-
-          {/* Rendimentos list */}
-          <div style={{ padding: '12px 16px' }}>
-            {rendimentos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: SI.textMute }}>
-                <Icon.Doc s={40} c={SI.border}/>
-                <div style={{ marginTop: 10, fontSize: 15, fontWeight: 500 }}>Nenhum rendimento ainda</div>
-                <div style={{ marginTop: 4, fontSize: 13 }}>Toque no + para adicionar</div>
-              </div>
-            ) : (
-              rendYears.map(y => (
-                <div key={y} style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: SI.textMute, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{y}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {rendByYear[y]
-                      .slice().sort((a, b) => (b.date || '') < (a.date || '') ? -1 : 1)
-                      .map((r, origIdx) => {
-                        const globalIdx = rendimentos.findIndex(x => x === r || x.id === r.id);
-                        return (
-                          <div key={r.id || origIdx}
-                            style={{
-                              background: '#fff', borderRadius: 12, padding: '12px 14px',
-                              border: `1px solid ${SI.border}`,
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: SI.tealDark }}>{r.label || 'Rendimento'}</div>
-                              <div style={{ fontSize: 12, color: SI.textMute, marginTop: 2 }}>{formatDateBR(r.date)}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: masked ? SI.textMute : SI.greenDark }}>
-                                {masked ? '••••' : `+R$ ${formatBRL(r.amount)}`}
-                              </span>
-                              <button
-                                onClick={() => setRendSheet({ mode: 'edit', item: r, index: globalIdx })}
-                                style={{ background: SI.bgSoft, border: `1px solid ${SI.border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', display: 'flex' }}
-                              >
-                                <Icon.Pencil s={14} c={SI.teal}/>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    }
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* FAB */}
-          <button
-            onClick={() => setRendSheet({ mode: 'add' })}
-            aria-label="Adicionar rendimento"
-            style={{
-              position: 'absolute', bottom: 28, right: 24,
-              width: 56, height: 56, borderRadius: '50%',
-              background: SI.olive, border: 'none',
-              boxShadow: '0 6px 20px rgba(181,160,59,0.45)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Icon.Plus s={28} c="#fff"/>
-          </button>
-        </div>
-      )}
-
-      {/* ── Bottom sheet: Investment ── */}
-      <BottomSheet
-        open={!!sheet}
-        onClose={() => setSheet(null)}
-        title={sheet?.mode === 'edit' ? 'Editar investimento' : 'Novo investimento'}
-      >
-        {sheet && (
-          <InvestmentForm
-            initial={sheet.mode === 'edit' ? sheet.item : null}
-            onSave={(inv) => sheet.mode === 'edit' ? editInvestment(sheet.index, inv) : addInvestment(inv)}
-            onCancel={() => setSheet(null)}
-            onDelete={sheet.mode === 'edit' ? () => deleteInvestment(sheet.index) : undefined}
-          />
-        )}
-      </BottomSheet>
-
-      {/* ── Bottom sheet: Rendimento ── */}
-      <BottomSheet
-        open={!!rendSheet}
-        onClose={() => setRendSheet(null)}
-        title={rendSheet?.mode === 'edit' ? 'Editar rendimento' : 'Novo rendimento'}
-      >
-        {rendSheet && (
-          <RendimentoForm
-            initial={rendSheet.mode === 'edit' ? rendSheet.item : null}
-            onSave={(r) => rendSheet.mode === 'edit' ? editRendimento(rendSheet.index, r) : addRendimento(r)}
-            onCancel={() => setRendSheet(null)}
-            onDelete={rendSheet.mode === 'edit' ? () => deleteRendimento(rendSheet.index) : undefined}
-          />
-        )}
-      </BottomSheet>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+        {[0,1,2,3,4].map(i => (
+          <span key={i} style={{ width: i===0?18:6, height: 6, borderRadius: 4, background: i===0?SI.teal:'#D9E1DC', transition: 'width 0.2s' }}/>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── Root App ─────────────────────────────────────────────────
-function App() {
-  const [screen, setScreen] = React.useState('home'); // 'home' | 'month'
-  const [selectedYear, setSelectedYear] = React.useState(CURRENT_YEAR);
-  const [selectedMonth, setSelectedMonth] = React.useState(0);
-  const [showBackup, setShowBackup] = React.useState(false);
-
-  function openMonth(year, monthIdx) {
-    setSelectedYear(year);
-    setSelectedMonth(monthIdx);
-    setScreen('month');
-  }
-
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      {screen === 'home' && (
-        <YearHome
-          year={CURRENT_YEAR}
-          onSelectMonth={openMonth}
-          onGear={() => setShowBackup(true)}
-        />
-      )}
-      {screen === 'month' && (
-        <MonthScreen
-          year={selectedYear}
-          monthIndex={selectedMonth}
-          onBack={() => setScreen('home')}
-          onGear={() => setShowBackup(true)}
-        />
-      )}
-      {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
-    </div>
-  );
-}
-
-// ─── Mount ────────────────────────────────────────────────────
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App));
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
