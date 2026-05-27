@@ -4,9 +4,10 @@
   "description": "Acompanhe seus investimentos mês a mês",
   "start_url": "./index.html",
   "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#F5F8F6",
-  "theme_color": "#00615E",
+  "theme_color": "#F5F8F6",
   "lang": "pt-BR",
   "icons": [
     {

@@ -266,27 +266,11 @@ function App() {
     </div>
   );
 
-  if (view === 'extrato') {
-    return (
-      <ResponsiveShell>
-        <ExtratoScreen
-          year={year} monthIdx={monthIdx}
-          total={total} monthYield={monthYield} yearPct={yearPct}
-          overrides={overrides} setOverrides={setOverrides}
-          visible={visible} onToggleVisible={() => setVisible(v => !v)}
-          onBack={() => setView('home')}
-          onGear={() => setShowBackup(true)}
-          prevMonth={prevMonth} nextMonth={nextMonth}
-          monthHeader={monthHeader}
-        />
-        {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
-      </ResponsiveShell>
-    );
-  }
-
   return (
     <ResponsiveShell>
+      {/* ── HOME (sempre montado) ── */}
       <div style={{
+        display: view === 'extrato' ? 'none' : 'block',
         background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
         color: SI.textDark,
         paddingBottom: 'env(safe-area-inset-bottom, 80px)',
@@ -478,6 +462,26 @@ function App() {
 
         {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
       </div>
+
+      {/* ── EXTRATO (sobreposto, montado quando ativo) ── */}
+      {view === 'extrato' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 20,
+          background: SI.bg, overflowY: 'auto',
+          fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+        }}>
+          <ExtratoScreen
+            year={year} monthIdx={monthIdx}
+            total={total} monthYield={monthYield} yearPct={yearPct}
+            overrides={overrides} setOverrides={setOverrides}
+            visible={visible} onToggleVisible={() => setVisible(v => !v)}
+            onBack={() => setView('home')}
+            onGear={() => setShowBackup(true)}
+            prevMonth={prevMonth} nextMonth={nextMonth}
+          />
+          {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
+        </div>
+      )}
     </ResponsiveShell>
   );
 }
