@@ -94,7 +94,13 @@ const Icon = {
       <path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13M10 11v7M14 11v7" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
-  Chevron: ({ s = 16, c = SI.teal }) => (
+  TrendUp: ({ s = 22, c = SI.greenPrimary }) => (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+      <path d="M3 17l5-5 4 4 7-9" stroke={c} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M17 7h4v4" stroke={c} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="6" cy="19" r="1.2" fill={c}/>
+    </svg>
+  ),
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
       <path d="M9 6l6 6-6 6" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>

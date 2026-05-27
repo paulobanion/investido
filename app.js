@@ -346,7 +346,7 @@ function App() {
         </div>
 
         {/* Quick actions */}
-        <QuickActions onAdd={openAdd} onExtrato={() => setView('extrato')}/>
+        <QuickActions onAdd={openAdd} onExtrato={() => setView('extrato')} investimentosAtivo={true}/>
 
         {/* Alocação */}
         <div style={{ ...cardStyle, marginTop: 12 }}>
@@ -597,7 +597,7 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
       </div>
 
       {/* Quick actions — igual à home, mas "Extrato" desabilitado pois já estamos nele */}
-      <QuickActions onAdd={openAdd} onExtrato={null} extratoAtivo={true}/>
+      <QuickActions onAdd={openAdd} onExtrato={null} extratoAtivo={true} onInvestimentos={onBack}/>
 
       {/* Lista rendimentos */}
       <div style={{ ...cardStyle, marginTop: 12, marginBottom: 96 }}>
@@ -787,8 +787,9 @@ function EditableRow({ label, value, hasOverride, masked, onSave }) {
   );
 }
 
-function QuickActions({ onAdd, onExtrato, extratoAtivo }) {
+function QuickActions({ onAdd, onExtrato, extratoAtivo, onInvestimentos, investimentosAtivo }) {
   const tiles = [
+    { icon: <Icon.TrendUp c={investimentosAtivo ? SI.teal : SI.greenPrimary}/>, label: 'Investimentos', onClick: onInvestimentos, active: investimentosAtivo },
     { icon: <Icon.Chart c={SI.olive}/>, label: 'Home Broker' },
     { icon: <Icon.Doc c={SI.greenPrimary}/>, label: 'Guia do\nInvestidor' },
     { icon: <Icon.Calc c={SI.greenPrimary}/>, label: 'Simulador' },
