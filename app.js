@@ -251,7 +251,7 @@ function App() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <img
           src="logo.png" alt="Logo"
-          style={{ height: 72, maxWidth: '62%', width: 'auto', display: 'block', objectFit: 'contain' }}
+          style={{ height: 100, maxWidth: '70%', width: 'auto', display: 'block', objectFit: 'contain' }}
         />
         <div style={{ fontSize: 11, color: SI.teal, fontWeight: 600, letterSpacing: 0.3, marginTop: 1 }}>
           {MONTHS[monthIdx]} {year}
@@ -534,7 +534,7 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
       }}>
         <button style={iconBtn} aria-label="Voltar" onClick={onBack}><Icon.Back/></button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <img src="logo.png" alt="Logo" style={{ height: 72, maxWidth: '62%', width: 'auto', objectFit: 'contain' }}/>
+          <img src="logo.png" alt="Logo" style={{ height: 100, maxWidth: '70%', width: 'auto', objectFit: 'contain' }}/>
           <div style={{ fontSize: 11, color: SI.teal, fontWeight: 600, letterSpacing: 0.3, marginTop: 1 }}>
             {MONTHS[monthIdx]} {year}
           </div>
