@@ -197,6 +197,9 @@ function App() {
   useEffect(() => { saveOverrides(year, monthIdx, overrides); }, [overrides, year, monthIdx]);
 
   function prevMonth() {
+    // Não permite navegar antes de Janeiro 2026
+    if (year === 2026 && monthIdx === 0) return;
+    if (year < 2026) return;
     if (monthIdx === 0) { setYear(y => y - 1); setMonthIdx(11); }
     else setMonthIdx(m => m - 1);
     setView('home'); setSheet(null);
@@ -238,13 +241,14 @@ function App() {
 
   const editingItem = sheet?.mode === 'edit' ? items.find(i => i.id === sheet.id) : null;
 
-  // ── Cabeçalho com setas de mês (igual ao original mas com setas) ──
+  // ── Cabeçalho com setas de mês ──
+  const isFirstMonth = year === 2026 && monthIdx === 0;
   const monthHeader = (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '20px 16px 14px', minHeight: 84, gap: 8,
     }}>
-      <button style={iconBtn} aria-label="Mês anterior" onClick={prevMonth}>
+      <button style={{ ...iconBtn, opacity: isFirstMonth ? 0.25 : 1 }} aria-label="Mês anterior" onClick={prevMonth} disabled={isFirstMonth}>
         <Icon.Back/>
       </button>
 
@@ -536,7 +540,7 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '20px 16px 14px', minHeight: 84, gap: 8,
       }}>
-        <button style={iconBtn} aria-label="Mês anterior" onClick={prevMonth}><Icon.Back/></button>
+        <button style={{ ...iconBtn, opacity: (year === 2026 && monthIdx === 0) ? 0.25 : 1 }} aria-label="Mês anterior" onClick={prevMonth} disabled={year === 2026 && monthIdx === 0}><Icon.Back/></button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <img src="logo.png" alt="Logo" style={{ height: 100, maxWidth: '70%', width: 'auto', objectFit: 'contain' }}/>
           <div style={{ fontSize: 11, color: SI.teal, fontWeight: 600, letterSpacing: 0.3, marginTop: 1 }}>
