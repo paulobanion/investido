@@ -1,5 +1,5 @@
 // service-worker.js — Cache First, 100% offline
-const CACHE = 'total-investido-v15';
+const CACHE = 'total-investido-v18';
 
 const ASSETS = [
   './',
