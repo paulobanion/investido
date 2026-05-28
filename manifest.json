@@ -1,6 +1,6 @@
 {
-  "name": "Total Investido",
-  "short_name": "Investido",
+  "name": "Poupança Sicoob",
+  "short_name": "Poupança",
   "description": "Acompanhe seus investimentos mês a mês",
   "start_url": "./index.html",
   "display": "minimal-ui",
@@ -28,6 +28,5 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["finance", "productivity"],
-  "screenshots": []
+  "categories": ["finance", "productivity"]
 }
