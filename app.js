@@ -531,19 +531,18 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
       background: SI.bg, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
       color: SI.textDark, paddingBottom: 'env(safe-area-inset-bottom, 24px)',
     }}>
-      {/* Cabeçalho — seta voltar | logo+mês | seta avançar */}
+      {/* Cabeçalho — seta mês anterior | logo+mês | seta mês seguinte */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '20px 16px 14px', minHeight: 84, gap: 8,
       }}>
-        <button style={iconBtn} aria-label="Voltar" onClick={onBack}><Icon.Back/></button>
+        <button style={iconBtn} aria-label="Mês anterior" onClick={prevMonth}><Icon.Back/></button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <img src="logo.png" alt="Logo" style={{ height: 100, maxWidth: '70%', width: 'auto', objectFit: 'contain' }}/>
           <div style={{ fontSize: 11, color: SI.teal, fontWeight: 600, letterSpacing: 0.3, marginTop: 1 }}>
             {MONTHS[monthIdx]} {year}
           </div>
         </div>
-        {/* Seta avançar mês (igual ao home) */}
         <button style={iconBtn} aria-label="Próximo mês" onClick={nextMonth}>
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
             <path d="M9 6l6 6-6 6" stroke={SI.textDark} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
