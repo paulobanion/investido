@@ -175,7 +175,7 @@ function formatDateBR(iso) {
 }
 
 // ─── App principal ─────────────────────────────────────────────
-function App() {
+function App({ onHome }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
@@ -293,6 +293,9 @@ function App() {
         {/* Total Investido card */}
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <button style={{ ...iconBtn, marginTop: 2 }} aria-label="Tela de entrada" onClick={onHome}>
+              <Icon.Home c={SI.teal}/>
+            </button>
             <div style={{ flex: 1 }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 22, color: SI.textDark, fontWeight: 500, letterSpacing: -0.2 }}>
@@ -482,6 +485,7 @@ function App() {
             visible={visible} onToggleVisible={() => setVisible(v => !v)}
             onBack={() => setView('home')}
             onGear={() => setShowBackup(true)}
+            onHome={onHome}
             prevMonth={prevMonth} nextMonth={nextMonth}
           />
           {showBackup && <BackupModal onClose={() => setShowBackup(false)}/>}
@@ -492,7 +496,7 @@ function App() {
 }
 
 // ─── Tela de Extrato ───────────────────────────────────────────
-function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, setOverrides, visible, onToggleVisible, onBack, onGear, prevMonth, nextMonth }) {
+function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, setOverrides, visible, onToggleVisible, onBack, onGear, onHome, prevMonth, nextMonth }) {
   const [rends, setRends] = useState(() => loadRendimentos(year, monthIdx));
   const [sheet, setSheet] = useState(null);
 
@@ -562,6 +566,9 @@ function ExtratoScreen({ year, monthIdx, total, monthYield, yearPct, overrides, 
       {/* Card total — igual ao home */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <button style={{ ...iconBtn, marginTop: 2 }} aria-label="Tela de entrada" onClick={onHome}>
+            <Icon.Home c={SI.teal}/>
+          </button>
           <div style={{ flex: 1 }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 22, color: SI.textDark, fontWeight: 500, letterSpacing: -0.2 }}>Total Investido</div>
@@ -826,4 +833,29 @@ function QuickActions({ onAdd, onExtrato, extratoAtivo, onInvestimentos, investi
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+// ─── Root: fluxo Login → Entrada → App ─────────────────────────
+function Root() {
+  // Login sempre aparece ao abrir (não é persistido).
+  const [stage, setStage] = useState('login'); // 'login' | 'entrada' | 'app'
+
+  if (stage === 'login') {
+    return (
+      <ResponsiveShell>
+        <LoginScreen onEnter={() => setStage('entrada')}/>
+      </ResponsiveShell>
+    );
+  }
+  if (stage === 'entrada') {
+    return (
+      <ResponsiveShell>
+        <EntradaScreen
+          onInvest={() => setStage('app')}
+          onLogout={() => setStage('login')}
+        />
+      </ResponsiveShell>
+    );
+  }
+  return <App onHome={() => setStage('entrada')}/>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);

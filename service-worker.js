@@ -1,5 +1,5 @@
 // service-worker.js — Cache First, 100% offline
-const CACHE = 'total-investido-v18';
+const CACHE = 'total-investido-v20';
 
 const ASSETS = [
   './',
@@ -10,6 +10,7 @@ const ASSETS = [
   './babel.min.js',
   './components.js',
   './forms.js',
+  './screens.js',
   './app.js',
   './icon-192.png',
   './icon-512.png',
