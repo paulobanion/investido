@@ -33,27 +33,6 @@ function SicoobMark({ h = 22 }) {
   );
 }
 
-// Barra de status Android (fidelidade ao print)
-function StatusBar({ time = '18:38' }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 14px', height: 26, fontSize: 12.5, color: '#fff',
-      fontFamily: "'Inter', system-ui, sans-serif", flexShrink: 0,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontWeight: 500 }}>{time}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24"><path d="M9 18V6l9-2v12" stroke="#fff" strokeWidth="1.6" fill="none"/><circle cx="7" cy="18" r="2.2" fill="#fff"/><circle cx="18" cy="16" r="2.2" fill="#fff"/></svg>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <svg width="15" height="15" viewBox="0 0 24 24"><path d="M5 9a7 7 0 0114 0v5l2 3H3l2-3z" stroke="#fff" strokeWidth="1.5" fill="none"/><path d="M3 3l18 18" stroke="#fff" strokeWidth="1.5"/></svg>
-        <svg width="15" height="15" viewBox="0 0 24 24"><path d="M2 16l10-12 10 12a14 14 0 00-20 0z" fill="#fff"/></svg>
-        <svg width="16" height="15" viewBox="0 0 24 24"><path d="M3 8h13v8H3zM16 11h2v2h-2z" stroke="#fff" strokeWidth="1.5" fill="none"/></svg>
-        <span style={{ fontWeight: 500, fontSize: 12 }}>90%</span>
-      </div>
-    </div>
-  );
-}
 
 // Glyph Pix — diamante oficial (recolorido em branco)
 function PixGlyph({ s = 26, color = '#fff' }) {
@@ -85,7 +64,6 @@ function LoginScreen({ onEnter }) {
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0px)',
     }}>
       <div style={triMesh}/>
-      <div style={{ position: 'relative' }}><StatusBar time="18:38"/></div>
 
       {/* Logo topo */}
       <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
@@ -222,8 +200,6 @@ function EntradaScreen({ onInvest, onLogout }) {
       background: SC.teal, color: SC.txt,
       fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
     }}>
-      {/* Barra de status */}
-      <div style={{ background: SC.ink }}><StatusBar time="18:37"/></div>
 
       {/* Top bar escura: logo + ícones */}
       <div style={{
