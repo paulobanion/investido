@@ -834,69 +834,79 @@ function QuickActions({ onAdd, onExtrato, extratoAtivo, onInvestimentos, investi
 }
 
 // ─── Root: fluxo Login → Entrada → App ─────────────────────────
-const STAGE_IDX = { login: 0, entrada: 1, app: 2 };
+const STAGE_IDX = { login: 0, fingerprint: 1, entrada: 2, app: 3 };
 
 function LoadingOverlay() {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'linear-gradient(180deg, #04302F 0%, #0E6E6B 55%, #13827E 100%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26,
+      background: 'linear-gradient(178deg, #06302E 0%, #0F6E6A 40%, #137E79 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'scFade 0.2s ease',
     }}>
-      <div style={{ position: 'relative', width: 64, height: 64 }}>
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: '50%',
-          border: '4px solid rgba(255,255,255,0.18)',
-          borderTopColor: '#A6CE39', animation: 'scSpin 0.8s linear infinite',
-        }}/>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
-            <path d="M2 4 L19 4 L10.5 20 Z" fill="#3DA935"/>
-            <path d="M21 4 L38 4 L29.5 20 Z" fill="#00AE9D"/>
-            <path d="M11 22 L29 22 L20 38 Z" fill="#A6CE39"/>
-          </svg>
-        </div>
-      </div>
-      <div style={{ color: 'rgba(234,246,244,0.85)', fontSize: 13.5, letterSpacing: 0.3, fontFamily: "'Inter', system-ui, sans-serif" }}>
-        Carregando…
-      </div>
+      <img src="sicoob-white.png" alt="Sicoob" style={{
+        height: 44, width: 'auto', animation: 'scPulse 1.1s ease-in-out infinite',
+      }}/>
     </div>
   );
 }
 
 function Root() {
   // Login sempre aparece ao abrir (não é persistido).
-  const [stage, setStage] = useState('login'); // 'login' | 'entrada' | 'app'
+  const [stage, setStage] = useState('login'); // 'login' | 'fingerprint' | 'entrada' | 'app'
   const [dir, setDir] = useState('fwd');
   const [loading, setLoading] = useState(false);
 
+  // transição com tela de carregamento (logo Sicoob)
   const go = (next) => {
     if (loading) return;
     setDir(STAGE_IDX[next] >= STAGE_IDX[stage] ? 'fwd' : 'back');
     setLoading(true);
     setTimeout(() => { setStage(next); setLoading(false); }, 1000);
   };
+  // transição instantânea (login → folha de digital)
+  const goInstant = (next) => {
+    setDir(STAGE_IDX[next] >= STAGE_IDX[stage] ? 'fwd' : 'back');
+    setStage(next);
+  };
+
+  // na folha de digital: espera ~1.1s e segue para a Entrada (via carregamento)
+  useEffect(() => {
+    if (stage === 'fingerprint') {
+      const t = setTimeout(() => go('entrada'), 1100);
+      return () => clearTimeout(t);
+    }
+  }, [stage]);
 
   let screen;
   if (stage === 'login') {
-    screen = <LoginScreen onEnter={() => go('entrada')}/>;
+    screen = <LoginScreen onEnter={() => goInstant('fingerprint')}/>;
+  } else if (stage === 'fingerprint') {
+    screen = (
+      <div style={{ position: 'relative', minHeight: '100dvh' }}>
+        <div style={{ pointerEvents: 'none' }}><LoginScreen onEnter={() => {}}/></div>
+        <FingerprintSheet/>
+      </div>
+    );
   } else if (stage === 'entrada') {
     screen = (
       <EntradaScreen
         onInvest={() => go('app')}
-        onLogout={() => go('login')}
+        onLogout={() => goInstant('login')}
       />
     );
   } else {
     screen = <App onHome={() => go('entrada')}/>;
   }
 
+  const anim = stage === 'fingerprint'
+    ? 'none'
+    : `${dir === 'fwd' ? 'scSlideInR' : 'scSlideInL'} 0.32s cubic-bezier(0.22,0.61,0.36,1)`;
+
   return (
     <ResponsiveShell>
       <div key={stage} style={{
-        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-        animation: `${dir === 'fwd' ? 'scSlideInR' : 'scSlideInL'} 0.32s cubic-bezier(0.22,0.61,0.36,1)`,
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column', animation: anim,
       }}>
         {screen}
       </div>

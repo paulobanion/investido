@@ -1,5 +1,5 @@
 // service-worker.js — Cache First, 100% offline
-const CACHE = 'total-investido-v22';
+const CACHE = 'total-investido-v28';
 
 const ASSETS = [
   './',
@@ -16,6 +16,10 @@ const ASSETS = [
   './icon-512.png',
   './icon-maskable-512.png',
   './logo.png',
+  './sicoob-logo.png',
+  './pix-logo.png',
+  './sicoob-white.png',
+  './pix-white.png',
 ];
 
 // Install: pre-cache everything
