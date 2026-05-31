@@ -70,8 +70,10 @@ function LoginScreen({ onEnter }) {
         <SicoobMark h={22}/>
       </div>
 
+      <div style={{ flex: 1 }}/>
+
       {/* Avatar + nome (clicável) */}
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 0 }}>
         <button onClick={onEnter} aria-label="Entrar como Paulo" style={{
           background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff',
           display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'inherit', padding: 0,
