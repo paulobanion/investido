@@ -205,15 +205,15 @@ function EntradaScreen({ onInvest, onLogout }) {
 
       {/* Top bar escura: logo + ícones */}
       <div style={{
-        background: SC.ink, padding: '8px 16px 12px',
+        background: SC.ink, padding: '16px 20px 18px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <SicoobMark h={19}/>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <svg width="21" height="21" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0116 0v3a3 3 0 01-3 3h-2M4 14v-2a8 8 0 011-3" {...st}/><circle cx="9" cy="13" r="0.6" fill="#fff"/><circle cx="12" cy="13" r="0.6" fill="#fff"/><circle cx="15" cy="13" r="0.6" fill="#fff"/></svg>
-          <svg width="21" height="21" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6zM9.5 20a2.5 2.5 0 005 0" {...st}/></svg>
+        <SicoobMark h={26}/>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+          <svg width="25" height="25" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0116 0v3a3 3 0 01-3 3h-2M4 14v-2a8 8 0 011-3" {...st}/><circle cx="9" cy="13" r="0.6" fill="#fff"/><circle cx="12" cy="13" r="0.6" fill="#fff"/><circle cx="15" cy="13" r="0.6" fill="#fff"/></svg>
+          <svg width="25" height="25" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6zM9.5 20a2.5 2.5 0 005 0" {...st}/></svg>
           <button onClick={onLogout} aria-label="Sair" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <svg width="21" height="21" viewBox="0 0 24 24"><path d="M14 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M9 8l-4 4 4 4M5 12h10" {...st}/></svg>
+            <svg width="25" height="25" viewBox="0 0 24 24"><path d="M14 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M9 8l-4 4 4 4M5 12h10" {...st}/></svg>
           </button>
         </div>
       </div>
