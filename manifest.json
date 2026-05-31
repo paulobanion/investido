@@ -1,6 +1,6 @@
 {
   "name": "Poupança Sicoob",
-  "short_name": "Poupança",
+  "short_name": "Sicoob",
   "description": "Acompanhe seus investimentos mês a mês",
   "start_url": "./index.html",
   "display": "minimal-ui",

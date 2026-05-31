@@ -59,7 +59,7 @@ function LoginScreen({ onEnter }) {
   return (
     <div style={{
       position: 'relative', minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-      background: `linear-gradient(178deg, ${SC.ink} 0%, ${SC.ink} 7%, ${SC.teal} 34%, ${SC.tealLite} 72%, ${SC.teal} 100%)`,
+      background: `linear-gradient(180deg, #05262B 0%, #073034 42%, #0A3E40 76%, #0C4A47 100%)`,
       color: SC.txt, fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0px)',
     }}>
@@ -84,7 +84,7 @@ function LoginScreen({ onEnter }) {
               border: '2px solid rgba(120,190,185,0.7)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <svg width="66" height="66" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="9" r="3.6" stroke="rgba(200,230,227,0.9)" strokeWidth="1.4"/>
                 <path d="M5.5 19c0-3.1 2.9-5.2 6.5-5.2s6.5 2.1 6.5 5.2" stroke="rgba(200,230,227,0.9)" strokeWidth="1.4" strokeLinecap="round"/>
               </svg>
@@ -199,7 +199,7 @@ function EntradaScreen({ onInvest, onLogout }) {
   return (
     <div style={{
       position: 'relative', minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-      background: SC.teal, color: SC.txt,
+      background: `linear-gradient(180deg, #05262B 0%, #073034 42%, #0A3E40 76%, #0C4A47 100%)`, color: SC.txt,
       fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
     }}>
 
@@ -246,7 +246,7 @@ function EntradaScreen({ onInvest, onLogout }) {
             border: '1px solid rgba(255,255,255,0.14)',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center', overflow: 'hidden',
           }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" style={{ marginBottom: -2 }}><circle cx="12" cy="9" r="3.5" fill="#BFE6E1"/><path d="M5 21c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6" fill="#BFE6E1"/></svg>
+            <svg width="50" height="50" viewBox="0 0 24 24" style={{ marginBottom: -3 }}><circle cx="12" cy="9" r="3.5" fill="#BFE6E1"/><path d="M5 21c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6" fill="#BFE6E1"/></svg>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, color: SC.txtSoft }}>Saldo em conta</div>
@@ -276,15 +276,15 @@ function EntradaScreen({ onInvest, onLogout }) {
           position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
           rowGap: 18, padding: '20px 14px 0',
         }}>
-          <GridItem label="Extrato"><svg width="27" height="27" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" {...st}/><path d="M8 8h8M8 12h8M8 16h5" {...st}/></svg></GridItem>
-          <GridItem label="Pagamentos"><svg width="27" height="27" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M9.5 5v14M12.5 5v14M15 5v14M17.5 5v14M20 5v14" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg></GridItem>
-          <GridItem label="Pix"><PixGlyph s={26} color="#fff"/></GridItem>
-          <GridItem label="Cartões"><svg width="27" height="27" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" {...st}/><path d="M3 10h18" {...st}/></svg></GridItem>
+          <GridItem label="Extrato"><svg width="34" height="34" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" {...st}/><path d="M8 8h8M8 12h8M8 16h5" {...st}/></svg></GridItem>
+          <GridItem label="Pagamentos"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M9.5 5v14M12.5 5v14M15 5v14M17.5 5v14M20 5v14" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg></GridItem>
+          <GridItem label="Pix"><PixGlyph s={34} color="#fff"/></GridItem>
+          <GridItem label="Cartões"><svg width="34" height="34" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" {...st}/><path d="M3 10h18" {...st}/></svg></GridItem>
 
-          <GridItem label="Crédito"><svg width="27" height="27" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" {...st}/><path d="M12 7v10M14.3 9.2c-.5-.8-1.4-1.1-2.3-1.1-1.2 0-2.3.7-2.3 1.9 0 2.6 4.8 1.3 4.8 4 0 1.3-1.2 2-2.5 2-1 0-1.9-.4-2.4-1.2" {...st}/></svg></GridItem>
-          <GridItem label="Investimentos" onClick={onInvest}><svg width="27" height="27" viewBox="0 0 24 24"><path d="M4 17l5-5 4 4 7-8" {...st}/><path d="M16 8h4v4" {...st}/></svg></GridItem>
-          <GridItem label="Transferências"><svg width="27" height="27" viewBox="0 0 24 24"><path d="M4 9h14M14 5l4 4-4 4M20 15H6M10 11l-4 4 4 4" {...st}/></svg></GridItem>
-          <GridItem label="Personalize"><svg width="27" height="27" viewBox="0 0 24 24"><path d="M4 8h4M14 8h6M4 16h10M18 16h2" {...st}/><circle cx="11" cy="8" r="2.4" {...st}/><circle cx="16" cy="16" r="2.4" {...st}/></svg></GridItem>
+          <GridItem label="Crédito"><svg width="34" height="34" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" {...st}/><path d="M12 7v10M14.3 9.2c-.5-.8-1.4-1.1-2.3-1.1-1.2 0-2.3.7-2.3 1.9 0 2.6 4.8 1.3 4.8 4 0 1.3-1.2 2-2.5 2-1 0-1.9-.4-2.4-1.2" {...st}/></svg></GridItem>
+          <GridItem label="Investimentos" onClick={onInvest}><svg width="34" height="34" viewBox="0 0 24 24"><path d="M4 17l5-5 4 4 7-8" {...st}/><path d="M16 8h4v4" {...st}/></svg></GridItem>
+          <GridItem label="Transferências"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M4 9h14M14 5l4 4-4 4M20 15H6M10 11l-4 4 4 4" {...st}/></svg></GridItem>
+          <GridItem label="Personalize"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M4 8h4M14 8h6M4 16h10M18 16h2" {...st}/><circle cx="11" cy="8" r="2.4" {...st}/><circle cx="16" cy="16" r="2.4" {...st}/></svg></GridItem>
         </div>
 
         {/* Ver mais */}

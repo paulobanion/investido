@@ -55,6 +55,16 @@
     ::-webkit-scrollbar { width: 3px; }
     ::-webkit-scrollbar-thumb { background: #C5D0CA; border-radius: 4px; }
     button:focus-visible { outline: 2px solid #7AB648; outline-offset: 2px; }
+    /* Fundo verde-petróleo com malha de triângulos (recriado em CSS) */
+    .teal-mesh-bg {
+      background-color: #0A3736;
+      background-image:
+        repeating-linear-gradient(0deg,   rgba(255,255,255,0.05) 0 1px, transparent 1px 34px),
+        repeating-linear-gradient(60deg,  rgba(255,255,255,0.05) 0 1px, transparent 1px 34px),
+        repeating-linear-gradient(120deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 34px),
+        linear-gradient(180deg, #062A2B 0%, #0A3B3A 58%, #0E4745 100%);
+      background-attachment: local, local, local, local;
+    }
     @keyframes scSlideInR {
       from { opacity: 0; transform: translateX(7%); }
       to   { opacity: 1; transform: translateX(0); }
